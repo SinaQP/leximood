@@ -1,0 +1,21 @@
+# Core dependencies for LexiMood Persian Sentiment Analysis
+numpy>=1.21.0
+pandas>=1.3.0
+scikit-learn>=1.0.0
+nltk>=3.6.0
+
+# Text processing
+hazm>=0.7.0
+parsivar>=0.3.0
+
+# JSON handling
+ujson>=4.0.0
+
+# Testing
+pytest>=6.0.0
+pytest-cov>=2.12.0
+
+# Development tools
+black>=21.0.0
+flake8>=3.9.0
+mypy>=0.910 
