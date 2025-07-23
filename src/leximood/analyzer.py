@@ -8,108 +8,95 @@ from .models import AnalysisResult, SentimentLabel
 from .preprocessor import TextPreprocessor
 from .sentiment import SentimentAnalyzer
 from .keywords import KeywordExtractor
+from .constants import (
+    SENTIMENT_POSITIVE_THRESHOLD, SENTIMENT_NEGATIVE_THRESHOLD,
+    CONFIDENCE_SCORE_MULTIPLIER, KEYWORD_CONFIDENCE_FACTOR, KEYWORD_COUNT_DIVISOR,
+    CONFIDENCE_MAX
+)
 
 
 class Analyzer:
-    """
-    Main analyzer class for Persian sentiment analysis.
-    """
-    
     def __init__(self, config: Optional[AnalysisConfig] = None):
-        """
-        Initialize the analyzer with configuration.
-        
-        Args:
-            config: Analysis configuration
-        """
         self.config = config or AnalysisConfig()
         self.preprocessor = TextPreprocessor()
         self.sentiment_analyzer = SentimentAnalyzer()
         self.keyword_extractor = KeywordExtractor()
     
     def analyze(self, text: str) -> AnalysisResult:
-        """
-        Analyze the sentiment of Persian text.
-        
-        Args:
-            text: Persian text to analyze
-            
-        Returns:
-            AnalysisResult containing sentiment analysis results
-        """
-        if not text or not text.strip():
+        if not self._is_valid_input_text(text):
             raise ValueError("Text cannot be empty")
         
-        # Preprocess text
         processed_text = self.preprocessor.preprocess(text)
-        
-        # Analyze sentiment
         sentiment_score = self.sentiment_analyzer.analyze(processed_text)
-        sentiment_label = self._get_sentiment_label(sentiment_score)
+        sentiment_label = self._determine_sentiment_label(sentiment_score)
+        keywords = self._extract_keywords_if_enabled(processed_text)
+        confidence = self._calculate_confidence_score(sentiment_score, len(keywords))
+        return self._create_analysis_result(
+            sentiment_label, sentiment_score, keywords, confidence, text
+        )
+    
+    def _is_valid_input_text(self, text: str) -> bool:
+        return text is not None and text.strip() != ""
+    
+    def _determine_sentiment_label(self, score: float) -> SentimentLabel:
+        if score > SENTIMENT_POSITIVE_THRESHOLD:
+            return SentimentLabel.POSITIVE
+        if score < SENTIMENT_NEGATIVE_THRESHOLD:
+            return SentimentLabel.NEGATIVE
+        return SentimentLabel.NEUTRAL
+    
+    def _extract_keywords_if_enabled(self, processed_text: str) -> list:
+        if not self.config.include_keywords:
+            return []
         
-        # Extract keywords if enabled
-        keywords = []
-        if self.config.include_keywords:
-            keywords = self.keyword_extractor.extract(
-                processed_text, 
-                max_keywords=self.config.max_keywords
-            )
+        return self.keyword_extractor.extract(
+            processed_text, 
+            max_keywords=self.config.max_keywords
+        )
+    
+    def _calculate_confidence_score(self, sentiment_score: float, keyword_count: int) -> float:
+        base_confidence = self._calculate_base_confidence(sentiment_score)
+        keyword_confidence = self._calculate_keyword_confidence(keyword_count)
+        total_confidence = base_confidence + keyword_confidence
         
-        # Calculate confidence
-        confidence = self._calculate_confidence(sentiment_score, len(keywords))
-        
+        return min(total_confidence, CONFIDENCE_MAX)
+    
+    def _calculate_base_confidence(self, sentiment_score: float) -> float:
+        return min(abs(sentiment_score) * CONFIDENCE_SCORE_MULTIPLIER, CONFIDENCE_MAX)
+    
+    def _calculate_keyword_confidence(self, keyword_count: int) -> float:
+        keyword_factor = min(keyword_count / KEYWORD_COUNT_DIVISOR, CONFIDENCE_MAX)
+        return keyword_factor * KEYWORD_CONFIDENCE_FACTOR
+    
+    def _create_analysis_result(
+        self, 
+        sentiment_label: SentimentLabel, 
+        sentiment_score: float, 
+        keywords: list, 
+        confidence: float, 
+        original_text: str
+    ) -> AnalysisResult:
         return AnalysisResult(
             sentiment=sentiment_label,
             score=sentiment_score,
             keywords=keywords,
             confidence=confidence,
-            text=text,
+            text=original_text,
             analysis_level=self.config.analysis_level.value
         )
-    
-    def _get_sentiment_label(self, score: float) -> SentimentLabel:
-        """Determine sentiment label based on score."""
-        if score > 0.1:
-            return SentimentLabel.POSITIVE
-        elif score < -0.1:
-            return SentimentLabel.NEGATIVE
-        else:
-            return SentimentLabel.NEUTRAL
-    
-    def _calculate_confidence(self, score: float, keyword_count: int) -> float:
-        """Calculate confidence score based on analysis results."""
-        # Base confidence on absolute score value
-        base_confidence = min(abs(score) * 2, 1.0)
-        
-        # Adjust based on keyword availability
-        keyword_factor = min(keyword_count / 3, 1.0) * 0.2
-        
-        return min(base_confidence + keyword_factor, 1.0)
 
 
-# Global analyzer instance
-_analyzer = None
+_global_analyzer_instance = None
 
 
 def analyze_text(text: str, config: Optional[AnalysisConfig] = None) -> AnalysisResult:
-    """
-    Analyze the sentiment of Persian text.
+    global _global_analyzer_instance
     
-    This is the main function for sentiment analysis.
+    if _should_create_new_analyzer(config):
+        _global_analyzer_instance = Analyzer(config)
     
-    Args:
-        text: Persian text to analyze
-        config: Optional configuration for analysis
-        
-    Returns:
-        AnalysisResult containing sentiment analysis results
-        
-    Raises:
-        ValueError: If text is empty or invalid
-    """
-    global _analyzer
-    
-    if _analyzer is None or config is not None:
-        _analyzer = Analyzer(config)
-    
-    return _analyzer.analyze(text) 
+    return _global_analyzer_instance.analyze(text)
+
+
+def _should_create_new_analyzer(config: Optional[AnalysisConfig]) -> bool:
+    return _global_analyzer_instance is None or config is not None 

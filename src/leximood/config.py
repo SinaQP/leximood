@@ -5,42 +5,41 @@ Configuration classes for LexiMood sentiment analysis.
 from dataclasses import dataclass
 from typing import Optional
 from enum import Enum
+from .constants import (
+    DEFAULT_MAX_KEYWORDS, DEFAULT_CONFIDENCE_THRESHOLD,
+    MIN_KEYWORDS_REQUIRED, CONFIDENCE_MIN, CONFIDENCE_MAX
+)
 
 
 class AnalysisLevel(Enum):
-    """Analysis level enumeration."""
     SENTENCE = "sentence"
     DOCUMENT = "document"
 
 
 class Language(Enum):
-    """Language enumeration."""
     PERSIAN = "persian"
 
 
 @dataclass
 class AnalysisConfig:
-    """
-    Configuration for sentiment analysis.
-    
-    Attributes:
-        analysis_level: Level of analysis (sentence or document)
-        language: Language of the text
-        include_keywords: Whether to extract keywords
-        max_keywords: Maximum number of keywords to extract
-        confidence_threshold: Threshold for confidence scoring
-    """
-    
     analysis_level: AnalysisLevel = AnalysisLevel.SENTENCE
     language: Language = Language.PERSIAN
     include_keywords: bool = True
-    max_keywords: int = 5
-    confidence_threshold: float = 0.5
+    max_keywords: int = DEFAULT_MAX_KEYWORDS
+    confidence_threshold: float = DEFAULT_CONFIDENCE_THRESHOLD
     
     def __post_init__(self):
-        """Validate configuration parameters."""
-        if self.max_keywords < 1:
-            raise ValueError("max_keywords must be at least 1")
+        self._validate_max_keywords()
+        self._validate_confidence_threshold()
+    
+    def _validate_max_keywords(self):
+        if self.max_keywords >= MIN_KEYWORDS_REQUIRED:
+            return
         
-        if not 0.0 <= self.confidence_threshold <= 1.0:
-            raise ValueError("confidence_threshold must be between 0.0 and 1.0") 
+        raise ValueError(f"max_keywords must be at least {MIN_KEYWORDS_REQUIRED}")
+    
+    def _validate_confidence_threshold(self):
+        if CONFIDENCE_MIN <= self.confidence_threshold <= CONFIDENCE_MAX:
+            return
+        
+        raise ValueError(f"confidence_threshold must be between {CONFIDENCE_MIN} and {CONFIDENCE_MAX}") 

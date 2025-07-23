@@ -5,10 +5,13 @@ Data models for LexiMood sentiment analysis results.
 from dataclasses import dataclass
 from typing import List, Optional
 from enum import Enum
+from .constants import (
+    SENTIMENT_SCORE_MIN, SENTIMENT_SCORE_MAX,
+    CONFIDENCE_MIN, CONFIDENCE_MAX
+)
 
 
 class SentimentLabel(Enum):
-    """Sentiment label enumeration."""
     POSITIVE = "positive"
     NEGATIVE = "negative"
     NEUTRAL = "neutral"
@@ -16,18 +19,6 @@ class SentimentLabel(Enum):
 
 @dataclass
 class AnalysisResult:
-    """
-    Result of sentiment analysis.
-    
-    Attributes:
-        sentiment: Sentiment label (positive, negative, neutral)
-        score: Sentiment score between -1 and 1
-        keywords: List of extracted keywords
-        confidence: Confidence score of the analysis
-        text: Original text that was analyzed
-        analysis_level: Level of analysis performed
-    """
-    
     sentiment: SentimentLabel
     score: float
     keywords: List[str]
@@ -36,15 +27,22 @@ class AnalysisResult:
     analysis_level: str
     
     def __post_init__(self):
-        """Validate result parameters."""
-        if not -1.0 <= self.score <= 1.0:
-            raise ValueError("score must be between -1.0 and 1.0")
+        self._validate_score()
+        self._validate_confidence()
+    
+    def _validate_score(self):
+        if SENTIMENT_SCORE_MIN <= self.score <= SENTIMENT_SCORE_MAX:
+            return
         
-        if not 0.0 <= self.confidence <= 1.0:
-            raise ValueError("confidence must be between 0.0 and 1.0")
+        raise ValueError(f"score must be between {SENTIMENT_SCORE_MIN} and {SENTIMENT_SCORE_MAX}")
+    
+    def _validate_confidence(self):
+        if CONFIDENCE_MIN <= self.confidence <= CONFIDENCE_MAX:
+            return
+        
+        raise ValueError(f"confidence must be between {CONFIDENCE_MIN} and {CONFIDENCE_MAX}")
     
     def to_dict(self) -> dict:
-        """Convert result to dictionary."""
         return {
             "sentiment": self.sentiment.value,
             "score": self.score,
@@ -55,5 +53,4 @@ class AnalysisResult:
         }
     
     def __str__(self) -> str:
-        """String representation of the result."""
         return f"AnalysisResult(sentiment={self.sentiment.value}, score={self.score:.3f}, confidence={self.confidence:.3f})" 

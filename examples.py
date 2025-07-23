@@ -7,11 +7,9 @@ sys.path.insert(0, 'src')
 from leximood import analyze_text, AnalysisConfig
 
 
-def basic_usage_example():
-    """Basic usage example."""
+def demonstrate_basic_usage():
     print("=== Basic Usage Example ===")
     
-    # Simple text analysis
     text = "امروز روز بسیار خوبی بود و خیلی خوشحالم"
     result = analyze_text(text)
     
@@ -23,11 +21,9 @@ def basic_usage_example():
     print()
 
 
-def custom_config_example():
-    """Example with custom configuration."""
+def demonstrate_custom_configuration():
     print("=== Custom Configuration Example ===")
     
-    # Create custom configuration
     config = AnalysisConfig(
         include_keywords=True,
         max_keywords=3,
@@ -44,8 +40,7 @@ def custom_config_example():
     print()
 
 
-def batch_analysis_example():
-    """Example of batch text analysis."""
+def demonstrate_batch_analysis():
     print("=== Batch Analysis Example ===")
     
     texts = [
@@ -66,19 +61,18 @@ def batch_analysis_example():
         print()
 
 
-def main():
-    """Run all examples."""
+def run_all_examples():
     print("LexiMood Persian Sentiment Analysis Examples")
     print("=" * 50)
     print()
     
-    basic_usage_example()
-    custom_config_example()
-    batch_analysis_example()
+    demonstrate_basic_usage()
+    demonstrate_custom_configuration()
+    demonstrate_batch_analysis()
     
     print("Note: These examples use placeholder implementations.")
     print("Full functionality will be available after completing all tasks.")
 
 
 if __name__ == "__main__":
-    main() 
+    run_all_examples() 
